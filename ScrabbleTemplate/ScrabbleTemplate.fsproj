@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+
+    <Content Include="Dictionaries\English.txt" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="7.0.200" />
+    <PackageReference Include="FSharp.Quotations.Evaluator" Version="2.1.0" />
+    <PackageReference Include="FsPickler" Version="5.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScrabbleBot\ScrabbleBot.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ScrabbleLib, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dlls\ScrabbleLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Oxyphenbutazone, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dlls\Oxyphenbutazone.dll</HintPath>
+    </Reference>
+    <Reference Include="ScrabbleServer, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dlls\ScrabbleServer.dll</HintPath>
+    </Reference>
+    <Reference Include="ScrabbleUtil, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dlls\ScrabbleUtil.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
