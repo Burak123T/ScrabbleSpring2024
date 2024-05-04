@@ -4,7 +4,7 @@
     <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="TrieDict.fs" />
+    <Compile Include="Dictionary.fs" />
     <Content Include="Dictionaries\English.txt" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -1,6 +1,8 @@
 ﻿// Learn more about F# at http://fsharp.org
 // Thank you Mr. Commentor, for the leason on how to use F#
 
+open Dictionary
+
 let time f =
     let start = System.DateTime.Now
     let res = f ()
@@ -46,7 +48,7 @@ let main argv =
 
     let dictAPI =
         // Uncomment if you have implemented a dictionary. last element None if you have not implemented a GADDAG
-        // Some (Dictionary.empty, Dictionary.insert, Dictionary.step, Some Dictionary.reverse) 
+        Some (Dictionary.empty, Dictionary.insert, Dictionary.step, None) 
         None
         
     // Uncomment this line to call your client
