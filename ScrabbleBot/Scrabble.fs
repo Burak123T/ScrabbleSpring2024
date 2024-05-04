@@ -85,10 +85,8 @@ module Scrabble =
 
             let newState = (State.mkState st.board st.dict st.playerNumber st.numPlayers st.hand st.playerTurn st.playedLetters st.timeout)
 
-            // Some [((0, 0), (18u, ('R', 1)))]
-
-            let nextMove: list<(int * int) * (uint32 * (char * int))> option =
-                Some [ ((0, 0), (18u, ('R', 1))) ]
+            // [((x-coord, y-coord), (tile id, (letter, score)))]
+            // let findNextMove: list<(int * int) * (uint32 * (char * int))> option =
 
             // remove the force print when you move on from manual input (or when you have learnt the format)
             forcePrint
