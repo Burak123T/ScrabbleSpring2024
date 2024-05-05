@@ -28,4 +28,4 @@ module internal MoveCalculator
         match isEmpty hand with
         | true -> None
         | false -> 
-            Some(combineLetters (toList hand) dict word)
+            (combineLetters (toList hand) dict word)
