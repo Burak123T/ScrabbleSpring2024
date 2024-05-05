@@ -74,6 +74,20 @@ module State =
     let dict st = st.dict
     let playerNumber st = st.playerNumber
     let hand st = st.hand
+    let numPlayers st = st.numPlayers
+    let playerTurn st = st.playerTurn
+    let playedLetters st = st.playedLetters
+    let timeout st = st.timeout
+
+    //Takes a state and puts in the moves that were made
+    let insertStateWithMove (moves: list<coord * (uint32 * (char * int))>) (state:state) =
+        List.fold (fun acc move -> 
+            let (coord , (_, (char, score))) = move
+            let justPlayedLetters = acc.playedLetters |> Map.add coord (char, score)
+            mkState acc.board acc.dict acc.playerNumber acc.numPlayers acc.hand acc.playerTurn justPlayedLetters acc.timeout
+        ) state moves
+
+
 
 module Scrabble =
     open System.Threading
@@ -119,7 +133,6 @@ module Scrabble =
             | RGPE err ->
                 printfn "Gameplay Error:\n%A" err
                 aux st
-
 
         aux st
 

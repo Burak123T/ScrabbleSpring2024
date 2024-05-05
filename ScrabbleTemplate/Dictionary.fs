@@ -7,7 +7,7 @@ module internal Dictionary
 
     type Dict = Node
 
-    // Root node which is initially empty
+    // Root node (which is initially empty)
     let root : Node = { child_nodes = Map.empty; is_word = false }
 
     let insert (word: string) : Dict =
@@ -18,7 +18,7 @@ module internal Dictionary
                 let next_node = Map.tryFind c trie_node.child_nodes
                 match next_node with
                 | Some (n) -> 
-                    let update_node = insertCharacter cs n // If node with the given character already exists¨
+                    let update_node = insertCharacter cs n // If node with the given character already exists
                     { trie_node with child_nodes = trie_node.child_nodes |> Map.add c update_node}
                 | None -> 
                     let update_node = insertCharacter cs <| { is_word = false; child_nodes = Map.empty }
