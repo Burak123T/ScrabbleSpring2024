@@ -7,8 +7,11 @@ module internal MoveCalculator
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
 
+    // Temporary way of saving the coord to be used
+    let mutable tmp = (0, 0)
+
     //TODO: this is a simple implementation, try to make it better
-    let getCoord (p: pieces) (w: string option) (b: Parser.board): (int * int) = (0, 0)
+    let getCoord (p: pieces) (w: string option) (b: Parser.board): (int * int) = tmp
 
     let mutable saveTileID: uint32 = 1u
 
@@ -47,6 +50,9 @@ module internal MoveCalculator
         | true -> failwith "No move available. "
         | false ->
             let nextWord = findNextWordBacktrack p dict ""
+            match tmp with
+            | (a, b) -> 
+                tmp <- (a + 1, b + 1)
             let coords = getCoord p nextWord b 
             let tileID = saveTileID
             let letter = getLetter p saveTileID // TODO: get the score associated with the letter
