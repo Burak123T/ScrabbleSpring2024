@@ -2,8 +2,26 @@ module internal MoveCalculator
 
     open ScrabbleUtil
     open ScrabbleUtil.Dictionary
+    open Parser
 
-    let rec nextInput (hand: uint32 list) (dict: Dictionary.Dict) (word: string) =
+    let getCoord (b: board): (int * int) = failwith "Not implemented"
+
+    let getTileID (b: board): uint32 = failwith "Not implemented" 
+
+    let getLetterAndScore (letter: char) (score: uint32): (char * uint32) = failwith "Not implemented" 
+
+    // [((x-coord, y-coord), (tile id, (letter, score)))]
+    let generateNextMove (b: board) (chars: char list): list<(int * int) * (uint32 * (char * uint32))> = 
+        match chars with
+        | [] -> failwith "No move available"
+        | c::cs ->
+            let coords = getCoord b
+            let tileID = getTileID b
+            let letterAndScore = getLetterAndScore c (uint32 0) // TODO: get the score associated with the letter
+            [ (coords), (tileID, (letterAndScore)) ]
+
+
+    let rec findNextWord (hand: uint32 list) (dict: Dictionary.Dict) (word: string) =
         match hand with
         | [] ->
             match lookup word dict with
@@ -11,7 +29,7 @@ module internal MoveCalculator
             | false -> None
         | c::rem ->
             // Backtracking 
-            let nextResult = nextInput rem dict (word + string c)
+            let nextResult = findNextWord rem dict (word + string c)
             match nextResult with
             | Some(w) -> Some(w)
             | None -> None
