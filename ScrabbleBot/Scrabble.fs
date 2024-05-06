@@ -11,8 +11,9 @@ open System.IO
 
 open ScrabbleUtil.DebugPrint
 
-// The RegEx module is only used to parse human input. It is not used for the final product.
 
+
+// The RegEx module is only used to parse human input. It is not used for the final product.
 module RegEx =
     open System.Text.RegularExpressions
 
@@ -35,11 +36,15 @@ module RegEx =
             | _ -> failwith "Failed (should never happen)")
         |> Seq.toList
 
+
+
 module Print =
 
     let printHand pieces hand =
         hand
         |> MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
+
+
 
 module State =
     // Make sure to keep your state localised in this module. It makes your life a whole lot easier.
@@ -89,6 +94,32 @@ module State =
 
 
 
+module NextMoveFinder =
+
+    type pieces = Map<uint32, tile>
+    type coordinates = (int * int)
+
+    //TODO: fix
+    let getCoord (p: pieces): (int * int) = (0, 0)
+
+    //TODO: fix
+    let getTileID: uint32 = 1u
+
+    //TODO: fix
+    let getLetterAndScore: (char * int) = ('A', 1)
+
+    // [((x-coord, y-coord), (tile id, (letter, score)))]
+    let generateNextMove (hand: MultiSet.MultiSet<uint32>) (b: board) (p: pieces): list<coord * (uint32 * (char * int))> = 
+        match Map.isEmpty p with
+        | true -> failwith "No move available"
+        | false ->
+            let coords = getCoord p
+            let tileID = getTileID
+            let letterAndScore = getLetterAndScore // TODO: get the score associated with the letter
+            [ (coords), (tileID, (letterAndScore)) ]
+
+
+
 module Scrabble =
     open System.Threading
 
@@ -99,15 +130,12 @@ module Scrabble =
 
             let newState = (State.mkState st.board st.dict st.playerNumber st.numPlayers st.hand st.playerTurn st.playedLetters st.timeout)
 
-            // [((x-coord, y-coord), (tile id, (letter, score)))]
-            // let findNextMove: list<(int * int) * (uint32 * (char * int))> option =
-
             // remove the force print when you move on from manual input (or when you have learnt the format)
             forcePrint
                 "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
-            let input = System.Console.ReadLine()
-            let move = RegEx.parseMove input
+            //let input = System.Console.ReadLine()
+            let move = NextMoveFinder.generateNextMove st.hand st.board pieces
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
@@ -128,7 +156,7 @@ module Scrabble =
                 (* Failed play. Update your state *)
                 let st' = newState // This state needs to be updated
                 aux st'
-            | RCM(CMGameOver _) -> printf "Final score not available"
+            | RCM(CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err ->
                 printfn "Gameplay Error:\n%A" err

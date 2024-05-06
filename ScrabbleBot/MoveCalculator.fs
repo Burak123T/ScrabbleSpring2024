@@ -4,20 +4,24 @@ module internal MoveCalculator
     open ScrabbleUtil.Dictionary
     open Parser
 
-    let getCoord (b: board): (int * int) = failwith "Not implemented"
+    type tile = (char * uint32)
+    type pieces = Map<uint32, tile>
+    type coordinates = (int * int)
 
-    let getTileID (b: board): uint32 = failwith "Not implemented" 
+    let getCoord: (int * int) = failwith "Not implemented"
 
-    let getLetterAndScore (letter: char) (score: uint32): (char * uint32) = failwith "Not implemented" 
+    let getTileID: uint32 = failwith "Not implemented" 
+
+    let getLetterAndScore: (char * uint32) = failwith "Not implemented" 
 
     // [((x-coord, y-coord), (tile id, (letter, score)))]
     let generateNextMove (b: board) (chars: char list): list<(int * int) * (uint32 * (char * uint32))> = 
         match chars with
         | [] -> failwith "No move available"
         | c::cs ->
-            let coords = getCoord b
-            let tileID = getTileID b
-            let letterAndScore = getLetterAndScore c (uint32 0) // TODO: get the score associated with the letter
+            let coords = getCoord
+            let tileID = getTileID
+            let letterAndScore = getLetterAndScore // TODO: get the score associated with the letter
             [ (coords), (tileID, (letterAndScore)) ]
 
 

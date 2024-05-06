@@ -15,10 +15,10 @@
     <Compile Include="Eval.fs" />
     <Compile Include="Parser.fsi" />
     <Compile Include="Parser.fs" />
-    <Compile Include="Scrabble.fsi" />
-    <Compile Include="Scrabble.fs" />
     <Compile Include="MoveCalculator.fsi" />
     <Compile Include="MoveCalculator.fs" />
+    <Compile Include="Scrabble.fsi" />
+    <Compile Include="Scrabble.fs" />
   </ItemGroup>
 
   <ItemGroup>
