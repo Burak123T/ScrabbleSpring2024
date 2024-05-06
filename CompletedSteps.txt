@@ -1,0 +1,5 @@
+- Multi-player: no
+- Dictionary: yes (Trie)
+- playing on all boards: no
+- parallelism: no
+- Respect the timeout flag: yes
