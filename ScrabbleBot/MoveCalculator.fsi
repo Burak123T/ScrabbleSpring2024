@@ -1,23 +1,23 @@
 module internal MoveCalculator
 
+    open ScrabbleUtil
     open ScrabbleUtil.Dictionary
     open Parser
 
-    type tile = (char * uint32)
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
 
     /// <summary>Return the coordinate to place in the next move.</summary>
-    val getCoord : coordinates
+    val getCoord: pieces -> option<string> -> Parser.board -> (int * int)
 
     /// <summary>Return the tile ID for the next move.</summary>
-    val getTileID : uint32
+    val mutable saveTileID: uint32
 
     /// <summary>Return the letter and its score for the next move.</summary>
-    val getLetterAndScore: (char * uint32)
+    val getLetter: pieces -> uint32 -> (char * int)
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
-    val generateNextMove : board -> char list -> list<coordinates * (uint32 * tile)>
+    val generateNextMove: Dict -> pieces -> board -> list<coord * (uint32 * (char * int))>
 
     /// <summary>Using backtracking, find the next word to be passed to the server.</summary>
-    val findNextWord : list<uint32> -> Dict -> string -> option<string>
+    val findNextWordBacktrack: pieces -> Dict -> string -> option<string>

@@ -1,5 +1,7 @@
 ﻿namespace LexiIngenium
 
+open MoveCalculator
+
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 open ScrabbleUtil.Dictionary
@@ -92,58 +94,8 @@ module State =
             mkState acc.board acc.dict acc.playerNumber acc.numPlayers acc.hand acc.playerTurn justPlayedLetters acc.timeout
         ) state moves
 
-
-
-module NextMoveFinder =
-
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
-
-    //TODO: fix
-    let getCoord (p: pieces) (w: string option): (int * int) = (0, 0)
-
-    //TODO: fix
-    let getTileID: uint32 = 1u
-
-    //TODO: fix
-    let getLetterAndScore: (char * int) = ('A', 1)
-
-    let findNextWordBacktrack (p: pieces) (dict: Dictionary.Dict) (word: string) =
-        let rec aux (p: pieces) (d: Dictionary.Dict) (w: string) (visited: Set<uint32 * tile>) =
-            match p.IsEmpty with
-            | true ->
-                match lookup w d with
-                | true ->
-                    Some w
-                | false -> 
-                    None
-            | false ->
-                let MapToList = Map.toList p
-                let nextLetter = List.head MapToList
-                let addPieceToVisited = visited.Add(nextLetter)
-                match visited.IsSupersetOf(addPieceToVisited) with
-                | true -> None
-                | false ->
-                    let remainingHand = List.removeAt 0 MapToList
-                    let checkIfCanFormWord = aux (Map.ofList remainingHand) d (w + string nextLetter) addPieceToVisited
-                    match checkIfCanFormWord with
-                    | Some(w1) -> 
-                        Some(w1)
-                    | None -> 
-                        None
-        aux p dict word Set.empty
-
-    // [((x-coord, y-coord), (tile id, (letter, score)))]
-    // hand: starting hand (tile id, number of tiles)
-    let generateNextMove (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (p: pieces): list<coord * (uint32 * (char * int))> = 
-        match Map.isEmpty p with
-        | true -> failwith "No move available"
-        | false ->
-            let nextWord = findNextWordBacktrack p dict ""
-            let coords = getCoord p nextWord
-            let tileID = getTileID
-            let letterAndScore = getLetterAndScore // TODO: get the score associated with the letter
-            [ (coords), (tileID, (letterAndScore)) ]
 
 
 
@@ -158,11 +110,11 @@ module Scrabble =
             let newState = (State.mkState st.board st.dict st.playerNumber st.numPlayers st.hand st.playerTurn st.playedLetters st.timeout)
 
             // remove the force print when you move on from manual input (or when you have learnt the format)
-            forcePrint
-                "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+           // forcePrint
+             //   "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
             //let input = System.Console.ReadLine()
-            let move = NextMoveFinder.generateNextMove st.hand st.dict pieces
+            let move = generateNextMove st.dict pieces st.board
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
