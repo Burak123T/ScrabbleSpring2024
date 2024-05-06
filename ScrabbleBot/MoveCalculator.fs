@@ -7,15 +7,12 @@ module internal MoveCalculator
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
 
-    // Temporary way of saving the coord to be used
-    let mutable tmp = (0, 0)
+    let mutable coordinates = (0, 0)
 
-    //TODO: this is a simple implementation, try to make it better
-    let getCoord (p: pieces) (w: string option) (b: Parser.board): (int * int) = tmp
+    let getCoord (p: pieces) (w: string option) (b: Parser.board): (int * int) = coordinates
 
     let mutable saveTileID: uint32 = 1u
 
-    //TODO: should we use 'MaximumElement'
     let getLetter (p: pieces) (tid: uint32): (char * int) = 
         match p.ContainsKey(tid) with
         | true -> p.[tid].MaximumElement
@@ -52,9 +49,9 @@ module internal MoveCalculator
             | true -> failwith "No move available. "
             | false ->
                 let nextWord = findNextWordBacktrack p dict ""
-                match tmp with
+                match coordinates with
                 | (a, b) -> 
-                    tmp <- (a + 1, b + 1)
+                    coordinates <- (a + 1, b + 1)
                 let coords = getCoord p nextWord b 
                 let tileID = saveTileID
                 let letter = getLetter p saveTileID // TODO: get the score associated with the letter
