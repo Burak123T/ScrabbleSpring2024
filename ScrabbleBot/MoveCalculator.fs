@@ -45,15 +45,18 @@ module internal MoveCalculator
 
     // [((x-coord, y-coord), (tile id, (letter, score)))]
     // hand: starting hand (tile id, number of tiles)
-    let generateNextMove (dict: Dictionary.Dict) (p: pieces) (b: Parser.board): list<coord * (uint32 * (char * int))> = 
-        match Map.isEmpty p with
-        | true -> failwith "No move available. "
-        | false ->
-            let nextWord = findNextWordBacktrack p dict ""
-            match tmp with
-            | (a, b) -> 
-                tmp <- (a + 1, b + 1)
-            let coords = getCoord p nextWord b 
-            let tileID = saveTileID
-            let letter = getLetter p saveTileID // TODO: get the score associated with the letter
-            [ (coords), (tileID, (letter)) ]
+    let generateNextMove (dict: Dictionary.Dict) (p: pieces) (b: Parser.board) (timer: uint32 option): list<coord * (uint32 * (char * int))> = 
+        match timer with
+        | Some(_) ->
+            match Map.isEmpty p with
+            | true -> failwith "No move available. "
+            | false ->
+                let nextWord = findNextWordBacktrack p dict ""
+                match tmp with
+                | (a, b) -> 
+                    tmp <- (a + 1, b + 1)
+                let coords = getCoord p nextWord b 
+                let tileID = saveTileID
+                let letter = getLetter p saveTileID // TODO: get the score associated with the letter
+                [ (coords), (tileID, (letter)) ]
+        | None -> failwith "Timeout."

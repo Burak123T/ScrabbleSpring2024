@@ -17,7 +17,7 @@ module internal MoveCalculator
     val getLetter: pieces -> uint32 -> (char * int)
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
-    val generateNextMove: Dict -> pieces -> board -> list<coord * (uint32 * (char * int))>
+    val generateNextMove: Dict -> pieces -> board -> uint32 option -> list<coord * (uint32 * (char * int))>
 
     /// <summary>Using backtracking, find the next word to be passed to the server.</summary>
     val findNextWordBacktrack: pieces -> Dict -> string -> option<string>

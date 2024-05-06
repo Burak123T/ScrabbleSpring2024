@@ -114,7 +114,7 @@ module Scrabble =
              //   "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
             //let input = System.Console.ReadLine()
-            let move = generateNextMove st.dict pieces st.board
+            let move = generateNextMove st.dict pieces st.board st.timeout
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
