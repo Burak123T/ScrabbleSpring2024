@@ -116,11 +116,11 @@ module Scrabble =
             //let input = System.Console.ReadLine()
             let move = generateNextMove st.dict pieces st.board st.timeout
 
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+            //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
 
             let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+            //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
             match msg with
             | RCM(CMPlaySuccess(ms: (coord * (uint32 * (char * int))) list, points, newPieces)) ->
@@ -136,9 +136,8 @@ module Scrabble =
                 let st' = newState // This state needs to be updated
                 aux st'
             | RCM(CMGameOver _) -> ()
-            | RCM a -> failwith (sprintf "not implmented: %A" a)
+            | RCM a -> ()
             | RGPE err ->
-                printfn "Gameplay Error:\n%A" err
                 aux st
 
         aux st
