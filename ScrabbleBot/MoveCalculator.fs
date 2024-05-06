@@ -9,7 +9,20 @@ module internal MoveCalculator
 
     let mutable coordinates = (0, 0)
 
-    let getCoord (p: pieces) (w: string option) (b: Parser.board): (int * int) = coordinates
+    let getCoord: (int * int) = 
+        match coordinates with
+        | (a, b) when a > b -> 
+            coordinates <- (a, b + 1)
+            coordinates
+        | (a, b) when a < b -> 
+            coordinates <- (a + 1, b)
+            coordinates
+        | (a, b) when a = b ->
+            coordinates <- (a + 2, b - 2)
+            coordinates
+        | (a, b) -> 
+            coordinates <- (a - 2, b + 2)
+            coordinates
 
     let mutable saveTileID: uint32 = 1u
 
@@ -54,7 +67,7 @@ module internal MoveCalculator
                     match coordinates with
                     | (a, b) -> 
                         coordinates <- (a + 1, b + 1)
-                    let coords = getCoord p nextWord b 
+                    let coords = getCoord
                     let tileID = saveTileID
                     let letter = getLetter p saveTileID // TODO: get the score associated with the letter
                     [ (coords), (tileID, (letter)) ]
@@ -67,7 +80,7 @@ module internal MoveCalculator
                 match coordinates with
                 | (a, b) -> 
                     coordinates <- (a + 1, b + 1)
-                let coords = getCoord p nextWord b 
+                let coords = getCoord
                 let tileID = saveTileID
                 let letter = getLetter p saveTileID // TODO: get the score associated with the letter
                 [ (coords), (tileID, (letter)) ]

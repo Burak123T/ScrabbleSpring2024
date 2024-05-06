@@ -8,7 +8,7 @@ module internal MoveCalculator
     type coordinates = (int * int)
 
     /// <summary>Return the coordinate to place in the next move.</summary>
-    val getCoord: pieces -> option<string> -> Parser.board -> (int * int)
+    val getCoord: (int * int)
 
     /// <summary>Return the tile ID for the next move.</summary>
     val mutable saveTileID: uint32
