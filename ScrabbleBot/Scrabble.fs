@@ -105,7 +105,7 @@ module Scrabble =
     let playGame cstream pieces (st: State.state) =
 
         let rec aux (st: State.state) =
-            Print.printHand pieces (State.hand st)
+            //Print.printHand pieces (State.hand st)
 
             let newState = (State.mkState st.board st.dict st.playerNumber st.numPlayers st.hand st.playerTurn st.playedLetters st.timeout)
 
