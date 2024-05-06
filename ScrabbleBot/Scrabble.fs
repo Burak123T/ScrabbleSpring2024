@@ -108,11 +108,33 @@ module NextMoveFinder =
     //TODO: fix
     let getLetterAndScore: (char * int) = ('A', 1)
 
+    let findNextWordBacktrack (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (word: string) =
+        let rec aux (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (word: string) =
+            match MultiSet.isEmpty hand with
+            | true ->
+                match lookup word dict with
+                | true ->
+                    Some word
+                | false -> 
+                    None
+            | false ->
+                let MSToList = MultiSet.toList hand
+                let nextLetter = List.head MSToList
+                let remainingHand = List.removeAt 0 MSToList
+                let checkIfCanFormWord = aux (MultiSet.ofList remainingHand) dict (word + string nextLetter)
+                match checkIfCanFormWord with
+                | Some(w) -> 
+                    Some(w)
+                | None -> 
+                    None
+        aux hand dict word
+
     // [((x-coord, y-coord), (tile id, (letter, score)))]
-    let generateNextMove (hand: MultiSet.MultiSet<uint32>) (b: board) (p: pieces): list<coord * (uint32 * (char * int))> = 
+    let generateNextMove (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (p: pieces): list<coord * (uint32 * (char * int))> = 
         match Map.isEmpty p with
         | true -> failwith "No move available"
         | false ->
+            let nextWord = findNextWordBacktrack hand dict "A"
             let coords = getCoord p
             let tileID = getTileID
             let letterAndScore = getLetterAndScore // TODO: get the score associated with the letter
@@ -135,7 +157,7 @@ module Scrabble =
                 "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
             //let input = System.Console.ReadLine()
-            let move = NextMoveFinder.generateNextMove st.hand st.board pieces
+            let move = NextMoveFinder.generateNextMove st.hand st.dict pieces
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
@@ -144,7 +166,7 @@ module Scrabble =
             debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
             match msg with
-            | RCM(CMPlaySuccess(ms, points, newPieces)) ->
+            | RCM(CMPlaySuccess(ms: (coord * (uint32 * (char * int))) list, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 let st' = newState // This state needs to be updated
                 aux st'
