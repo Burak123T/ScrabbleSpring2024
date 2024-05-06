@@ -100,7 +100,7 @@ module NextMoveFinder =
     type coordinates = (int * int)
 
     //TODO: fix
-    let getCoord (p: pieces): (int * int) = (0, 0)
+    let getCoord (p: pieces) (w: string option): (int * int) = (0, 0)
 
     //TODO: fix
     let getTileID: uint32 = 1u
@@ -108,34 +108,39 @@ module NextMoveFinder =
     //TODO: fix
     let getLetterAndScore: (char * int) = ('A', 1)
 
-    let findNextWordBacktrack (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (word: string) =
-        let rec aux (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (word: string) =
-            match MultiSet.isEmpty hand with
+    let findNextWordBacktrack (p: pieces) (dict: Dictionary.Dict) (word: string) =
+        let rec aux (p: pieces) (d: Dictionary.Dict) (w: string) (visited: Set<uint32 * tile>) =
+            match p.IsEmpty with
             | true ->
-                match lookup word dict with
+                match lookup w d with
                 | true ->
-                    Some word
+                    Some w
                 | false -> 
                     None
             | false ->
-                let MSToList = MultiSet.toList hand
-                let nextLetter = List.head MSToList
-                let remainingHand = List.removeAt 0 MSToList
-                let checkIfCanFormWord = aux (MultiSet.ofList remainingHand) dict (word + string nextLetter)
-                match checkIfCanFormWord with
-                | Some(w) -> 
-                    Some(w)
-                | None -> 
-                    None
-        aux hand dict word
+                let MapToList = Map.toList p
+                let nextLetter = List.head MapToList
+                let addPieceToVisited = visited.Add(nextLetter)
+                match visited.IsSupersetOf(addPieceToVisited) with
+                | true -> None
+                | false ->
+                    let remainingHand = List.removeAt 0 MapToList
+                    let checkIfCanFormWord = aux (Map.ofList remainingHand) d (w + string nextLetter) addPieceToVisited
+                    match checkIfCanFormWord with
+                    | Some(w1) -> 
+                        Some(w1)
+                    | None -> 
+                        None
+        aux p dict word Set.empty
 
     // [((x-coord, y-coord), (tile id, (letter, score)))]
+    // hand: starting hand (tile id, number of tiles)
     let generateNextMove (hand: MultiSet.MultiSet<uint32>) (dict: Dictionary.Dict) (p: pieces): list<coord * (uint32 * (char * int))> = 
         match Map.isEmpty p with
         | true -> failwith "No move available"
         | false ->
-            let nextWord = findNextWordBacktrack hand dict "A"
-            let coords = getCoord p
+            let nextWord = findNextWordBacktrack p dict ""
+            let coords = getCoord p nextWord
             let tileID = getTileID
             let letterAndScore = getLetterAndScore // TODO: get the score associated with the letter
             [ (coords), (tileID, (letterAndScore)) ]

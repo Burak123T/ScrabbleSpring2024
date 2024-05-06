@@ -26,7 +26,7 @@ module internal Dictionary
         let update_root_node = insertCharacter (List.ofSeq word) root
         update_root_node
 
-    let lookup (word: string) =
+    let lookup (word: string) (d: Dict) =
         let rec findCharacter charlist (trie_node: Node) =
             match charlist with
             | [] -> trie_node.is_word
