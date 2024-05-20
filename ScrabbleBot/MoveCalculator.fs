@@ -7,24 +7,20 @@ module internal MoveCalculator
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
 
-    let mutable coordinates = (0, 0)
+    let coordinates = (0, 0)
 
     let getCoord: (int * int) = 
         match coordinates with
         | (a, b) when a > b -> 
-            coordinates <- (a, b + 1)
-            coordinates
+            (a, b + 1)
         | (a, b) when a < b -> 
-            coordinates <- (a + 1, b)
-            coordinates
+            (a + 1, b)
         | (a, b) when a = b ->
-            coordinates <- (a + 2, b - 2)
-            coordinates
+            (a + 2, b - 2)
         | (a, b) -> 
-            coordinates <- (a - 2, b + 2)
-            coordinates
+            (a - 2, b + 2)
 
-    let mutable saveTileID: uint32 = 1u
+    let saveTileID: uint32 = 1u
 
     let getLetter (p: pieces) (tid: uint32): (char * int) = 
         match p.ContainsKey(tid) with
@@ -41,7 +37,6 @@ module internal MoveCalculator
             | false ->
                 let MapToList = Map.toList p
                 let nextLetter = MapToList |> List.head
-                saveTileID <- fst nextLetter
                 let addPieceToVisited = nextLetter |> visited.Add
                 match visited.IsSupersetOf(addPieceToVisited) with
                 | true -> None
@@ -66,7 +61,7 @@ module internal MoveCalculator
                     let nextWord = findNextWordBacktrack p dict ""
                     match coordinates with
                     | (a, b) -> 
-                        coordinates <- (a + 1, b + 1)
+                        (a + 1, b + 1)
                     let coords = getCoord
                     let tileID = saveTileID
                     let letter = getLetter p saveTileID // TODO: get the score associated with the letter
@@ -79,7 +74,7 @@ module internal MoveCalculator
                 let nextWord = findNextWordBacktrack p dict ""
                 match coordinates with
                 | (a, b) -> 
-                    coordinates <- (a + 1, b + 1)
+                    (a + 1, b + 1)
                 let coords = getCoord
                 let tileID = saveTileID
                 let letter = getLetter p saveTileID // TODO: get the score associated with the letter

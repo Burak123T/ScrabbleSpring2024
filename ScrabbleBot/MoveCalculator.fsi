@@ -11,7 +11,7 @@ module internal MoveCalculator
     val getCoord: (int * int)
 
     /// <summary>Return the tile ID for the next move.</summary>
-    val mutable saveTileID: uint32
+    val saveTileID: uint32
 
     /// <summary>Return the letter and its score for the next move.</summary>
     val getLetter: pieces -> uint32 -> (char * int)
