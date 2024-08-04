@@ -1,7 +1,5 @@
 ﻿namespace LexiIngenium
 
-open MoveCalculator
-
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 open ScrabbleUtil.Dictionary
@@ -45,7 +43,6 @@ module Print =
     let printHand pieces hand =
         hand
         |> MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
-
 
 
 module State =
@@ -97,7 +94,19 @@ module State =
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
 
+/// <summary>Our implementation for a move finding algorithm ;_;</summary>
+module NextMoveFinder =
 
+    /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
+    let NextMove (state: State.state) : (coord * (uint32 * (char * int))) list = 
+        // Check if center has a tile (i.e., if you are the first player to make a move)
+        match state.board.squares (0,0) with
+        | StateMonad.Result.Success None -> [(-1,0), (0u, ('B', 0)); (0,0), (0u, ('A', 0)); (1,0), (0u, ('R', 0))] // Placeholder move
+
+    let rec GenerateFirstWord (state: State.state) (init: list<coord * (uint32 * (char * int))>) =
+        match lookup "a" state.dict with // placeholder lookup
+        | true -> GenerateFirstWord state [(init; (0,0), (0u, ('A', 0)))] // placeholder word generation
+        | false -> init
 
 module Scrabble =
     open System.Threading
@@ -114,7 +123,7 @@ module Scrabble =
              //   "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
             //let input = System.Console.ReadLine()
-            let move = generateNextMove st.dict pieces st.board st.timeout
+            let move = NextMoveFinder.NextMove st
 
             //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
