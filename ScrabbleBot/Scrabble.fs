@@ -97,16 +97,21 @@ module State =
 /// <summary>Our implementation for a move finding algorithm ;_;</summary>
 module NextMoveFinder =
 
+    // [(-1,0), (0u, ('B', 0)); (0,0), (0u, ('A', 0)); (1,0), (0u, ('R', 0))] example 
+    let rec GenerateFirstWord (state: State.state) : list<coord * (uint32 * (char * int))> =
+        failwith "not yet implemented"
+
+    let rec GenerateNextWord (state: State.state) : (coord * (uint32 * (char * int))) list = 
+        failwith "not yet implemented" 
+
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (state: State.state) : (coord * (uint32 * (char * int))) list = 
         // Check if center has a tile (i.e., if you are the first player to make a move)
         match state.board.squares (0,0) with
-        | StateMonad.Result.Success None -> [(-1,0), (0u, ('B', 0)); (0,0), (0u, ('A', 0)); (1,0), (0u, ('R', 0))] // Placeholder move
+        | StateMonad.Result.Success None -> GenerateFirstWord state
+        | StateMonad.Result.Success (Some _) -> GenerateNextWord  state
+        | StateMonad.Result.Failure (_) -> GenerateNextWord state
 
-    let rec GenerateFirstWord (state: State.state) (init: list<coord * (uint32 * (char * int))>) =
-        match lookup "a" state.dict with // placeholder lookup
-        | true -> GenerateFirstWord state [(init; (0,0), (0u, ('A', 0)))] // placeholder word generation
-        | false -> init
 
 module Scrabble =
     open System.Threading
