@@ -117,6 +117,25 @@ module NextMoveFinder =
             (move, false)
             hand
 
+    // Very naive approach which checks up, down, left, and right of a letter tile
+    // However, doesn't seem to ever run after first word is found...
+    let rec subsequentMoveFinder (increment: int) (hand: MultiSet.MultiSet<uint32>) (pieces: State.pieces) (move: Move) (dict: Dict) (x, y)  =
+        match dfsCheck hand pieces move dict (x, y) with
+        | (m, true) -> (m, true)
+        | (_, false) -> 
+            match subsequentMoveFinder (increment) hand pieces move dict (x + increment, y) with
+            | (m, true) -> (m, true)
+            | (_, false) -> 
+                match subsequentMoveFinder (increment) hand pieces move dict (x + increment, y) with
+                | (m, true) -> (m, true)
+                | (_, false) -> 
+                    match subsequentMoveFinder (increment) hand pieces move dict (x, y + increment) with
+                    | (m, true) -> (m, true)
+                    | (_, false) -> 
+                        match subsequentMoveFinder (increment) hand pieces move dict (x, y - increment) with
+                        | (m, true) -> (m, true)
+                        | (_, false) -> subsequentMoveFinder (increment + 1) hand pieces move dict (x, y)
+
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state) : Move =
         // Check whether it is the first move of the game
@@ -124,8 +143,8 @@ module NextMoveFinder =
             let move, finished = dfsCheck state.hand pieces [] state.dict state.board.center
             move
         else
-            // If not the first word
-            failwith ""
+            let nextMove, finished = subsequentMoveFinder 0 state.hand pieces [] state.dict (0, 0)
+            nextMove
 
 
 
