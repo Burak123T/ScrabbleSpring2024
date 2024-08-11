@@ -80,50 +80,51 @@ module State =
 module NextMoveFinder =
     type Move = (coord * (uint32 * (char * int))) list
 
+    /// <summary>Depth-first search to find first valid word.</summary>
+    let rec dfsCheck (hand: MultiSet.MultiSet<uint32>) (pieces: State.pieces) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
+        // We loop through all pieces in the hand until we find a valid word,
+        // in which case we set finished to true and simply pass the move back up the stack.
+        MultiSet.fold
+            (fun (move, finished) id _ -> // for each piece in hand
+                // Get the piece from the pieces map
+                // A piece is a set of variants, typically only one,
+                // but in case the piece is a wildcard piece, the set will contain all possible variants.
+                let piece = Map.find id pieces
+
+                Set.fold
+                    (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
+                        if finished then
+                            // This is the branch we enter when we have already found a valid word
+                            (move, true)
+                        else
+                            // Check if the current dictionary node has a child node with the current character
+                            match Dictionary.step char dict with
+                            | Some(finished, dict) ->
+                                let tile = (id, (char, points))
+                                let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
+
+                                if finished then
+                                    // If this dictionary node is a word, we have found a valid word
+                                    // and we can return the move
+                                    (move, true)
+                                else
+                                    // Otherwise, we continue the search
+                                    dfsCheck (MultiSet.removeSingle id hand) pieces move dict (x + 1, y)
+
+                            | None -> (move, false))
+                    (move, finished)
+                    piece)
+            (move, false)
+            hand
+
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state) : Move =
         // Check whether it is the first move of the game
         if Map.isEmpty state.playedLetters then
-            // Depth-first search to find first valid word
-            let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
-                // We loop through all pieces in the hand until we find a valid word,
-                // in which case we set finished to true and simply pass the move back up the stack.
-                MultiSet.fold
-                    (fun (move, finished) id _ -> // for each piece in hand
-                        // Get the piece from the pieces map
-                        // A piece is a set of variants, typically only one,
-                        // but in case the piece is a wildcard piece, the set will contain all possible variants.
-                        let piece = Map.find id pieces
-
-                        Set.fold
-                            (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
-                                if finished then
-                                    // This is the branch we enter when we have already found a valid word
-                                    (move, true)
-                                else
-                                    // Check if the current dictionary node has a child node with the current character
-                                    match Dictionary.step char dict with
-                                    | Some(finished, dict) ->
-                                        let tile = (id, (char, points))
-                                        let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
-
-                                        if finished then
-                                            // If this dictionary node is a word, we have found a valid word
-                                            // and we can return the move
-                                            (move, true)
-                                        else
-                                            // Otherwise, we continue the search
-                                            check (MultiSet.removeSingle id hand) move dict (x + 1, y)
-
-                                    | None -> (move, false))
-                            (move, finished)
-                            piece)
-                    (move, false)
-                    hand
-
-            let move, finished = check state.hand [] state.dict state.board.center
+            let move, finished = dfsCheck state.hand pieces [] state.dict state.board.center
             move
         else
+            // If not the first word
             failwith ""
 
 
