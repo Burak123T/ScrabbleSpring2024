@@ -59,11 +59,14 @@ module State =
           hand: MultiSet.MultiSet<uint32>
           curPlayer: uint32
           playedLetters: Map<coord, (char * int)>
-          timeout: uint32 option }
+          timeout: uint32 option
+          GoRight: bool
+          GoDown: bool
+          LastTile: (coord * uint32 * (char * int)) option }
 
     // OLD (But keeping just in case we want it on one line): let mkState b d pn h = {board = b; dict = d;  playerNumber = pn; hand = h  }
 
-    let mkState newBoard newDict newPlayerNum newNumPlayers newHand newPlaterTurn playedLetters timeout =
+    let mkState newBoard newDict newPlayerNum newNumPlayers newHand newPlaterTurn playedLetters timeout goRight goDown lastTile =
         { board = newBoard
           dict = newDict
           playerNum = newPlayerNum
@@ -71,7 +74,10 @@ module State =
           hand = newHand
           curPlayer = newPlaterTurn
           playedLetters = playedLetters
-          timeout = timeout }
+          timeout = timeout
+          GoRight = goRight
+          GoDown = goDown
+          LastTile = lastTile }
 
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
@@ -79,6 +85,37 @@ module State =
 /// <summary>Our implementation for a move finding algorithm ;_;</summary>
 module NextMoveFinder =
     type Move = (coord * (uint32 * (char * int))) list
+
+    /// <summary>Staircase Method to find the next subsequent move.</summary>
+    let StaircaseNextMove (pieces: State.pieces) (state: State.state) =
+        let rec findLastLetter (goRight: bool) (goDown: bool) (lastTile: option<coord * uint32 * (char * int)>) =
+            // Start by checking if we should go right
+            match goRight with
+            | true -> 
+                // From the last provided tile, check one tile to the right          
+                match lastTile with
+                | Some ((x, y), tileId, (character, score)) -> 
+                    // If a letter to the right exists, then go one right again
+                    findLastLetter true false (Some ((x + 1, y), tileId, (character, score))) 
+                // if no other letter exists, then try checking one down (returns 'false' for the 'state.ToRight')
+                | None -> findLastLetter false true lastTile
+            | false ->
+                // check if we can go down instead
+                match goDown with
+                | true ->
+                    // From the last provided tile, check one tile down        
+                    match lastTile with
+                    | Some ((x, y), tileId, (character, score)) -> 
+                        // If a letter to under exists, then go one down again
+                        findLastLetter true false (Some ((x, y - 1), tileId, (character, score))) 
+                    // if no letter exists under either, then we must have reached final letter
+                    | None -> findLastLetter false false lastTile
+                // we must have reached the last placed letter on the board
+                | false -> // place new word
+                    failwith "not implemented"
+
+
+        findLastLetter true false state.LastTile
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state) : Move =
@@ -124,7 +161,8 @@ module NextMoveFinder =
             let move, finished = check state.hand [] state.dict state.board.center
             move
         else
-            failwith ""
+            // If subsequent move
+            StaircaseNextMove pieces state
 
 
 
@@ -259,4 +297,4 @@ module Scrabble =
             playGame
                 cstream
                 tiles
-                (State.mkState board dict playerNumber numPlayers handSet playerTurn Map.empty timeout)
+                (State.mkState board dict playerNumber numPlayers handSet playerTurn Map.empty timeout true false None)
