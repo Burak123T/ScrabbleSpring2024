@@ -81,7 +81,7 @@ let main argv =
     let players =
         // [ "LexiIngenium", dictionary, LexiIngenium.Scrabble.startGame
         //   "OxyphenButazone", dictionary, Oxyphenbutazone.Scrabble.startGame ]
-        spawnMultiples "LexiIngenium" dictionary LexiIngenium.Scrabble.startGame 2
+        spawnMultiples "LexiIngenium" dictionary LexiIngenium.Scrabble.startGame 1
 
     // Uncomment to test your dictionary
     let incorrectWords = ScrabbleUtil.Dictionary.test words 10 (dictionary false) // change the boolean to true if using a GADDAG

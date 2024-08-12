@@ -90,8 +90,13 @@ module NextMoveFinder =
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let dfsCheck (pieces: State.pieces) (state: State.state) (tile: (coord * uint32 * (char * int)) option) : Move =
+        ScrabbleUtil.DebugPrint.debugPrint (sprintf "- NextMove (playerNum %d)\n" state.playerNum)
+        // Check whether it is the first move of the game
+        match state.LastTile with
+        | Some (_) ->
             // Depth-first search to find first valid word
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "-dfsCheck (playerNum %d)-" state.playerNum)
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- finding move (playerNum %d)\n" state.playerNum)
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- Last tile: %A \n" state.LastTile)
             let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
                 // We loop through all pieces in the hand until we find a valid word,
                 // in which case we set finished to true and simply pass the move back up the stack.
@@ -127,58 +132,55 @@ module NextMoveFinder =
                             piece)
                     (move, false)
                     hand
-            let move, finished =
-                match tile with
-                | Some(coord, uint32, (c, i)) -> check state.hand [] state.dict coord
-                | None -> check state.hand [] state.dict state.board.center
+
+            let move, finished = 
+                match state.LastTile with
+                | Some(coord, _, (_, _)) -> check state.hand [] state.dict coord
+                | None -> ([], false)
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- move generated (playerNum %d)\n" state.playerNum)
             move
+        | None ->
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- no next move (playerNum %d)\n" state.playerNum)
+            []
 
     /// <summary>Staircase Method to find the next subsequent move.
     /// If the global state 'GoRight' is true, then it will go right to find the last letter,
     /// and then place words down. If the global state 'GoDown' is true, then it will do the
     /// opposite.
     /// </summary>
-    let StaircaseNextMove (pieces: State.pieces) (state: State.state): bool * bool * option<coord * uint32 * (char * int)> * Move =
-        let rec findLastLetter (goRight: bool) (goDown: bool) (lastTile: option<coord * uint32 * (char * int)>) =
+    let StaircaseNextMove (pieces: State.pieces) (state: State.state) (lastTile: option<coord * uint32 * (char * int)>): bool * bool * Move =
+        let rec findLastLetter (goRight: bool) (goDown: bool)=
             // Start by checking if we should go right
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase (playerNum %d)-" state.playerNum)
             match goRight with
             | true -> 
+                ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase right (playerNum %d)\n" state.playerNum)
                 // From the last provided tile, check one tile to the right          
                 match lastTile with
-                | Some ((x, y), tileId, (character, score)) -> 
-                    // If a letter to the right exists, then go one right again
-                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase right (playerNum %d)-" state.playerNum)
-                    findLastLetter true false (Some ((x + 1, y), tileId, (character, score))) 
-                // if no other letter exists, then try checking one down (returns 'false' for the 'state.ToRight')
-                | None -> (false, true, lastTile, (dfsCheck pieces state lastTile))
+                | Some (_) -> 
+                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "-working from last tile (Right): %A" lastTile)
+                    dfsCheck pieces state lastTile
             | false ->
                 // check if we can go down instead
                 match goDown with
                 | true ->
+                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase down (playerNum %d)\n" state.playerNum)
                     // From the last provided tile, check one tile down        
                     match lastTile with
-                    | Some ((x, y), tileId, (character, score)) -> 
-                        // If a letter to under exists, then go one down again
-                        ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase down (playerNum %d)-" state.playerNum)
-                        findLastLetter true false (Some ((x, y - 1), tileId, (character, score))) 
-                    // if no letter exists under either, then we must have reached final letter
-                    | None -> findLastLetter false false lastTile
+                        | Some (_) -> 
+                        ScrabbleUtil.DebugPrint.debugPrint (sprintf "-working from last tile (Right): %A" lastTile)
+                        dfsCheck pieces state lastTile
                 // we must have reached the last placed letter on the board
-                | false -> // place new word
-                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase place word (playerNum %d)-" state.playerNum)
-                    (true, false, lastTile, (dfsCheck pieces state lastTile))
 
 
-        findLastLetter state.GoRight state.GoDown state.LastTile
+        (state.GoRight, state.GoDown, (findLastLetter state.GoRight state.GoDown))
 
-    /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
-    let NextMove (pieces: State.pieces) (state: State.state) : Move =
-        ScrabbleUtil.DebugPrint.debugPrint (sprintf "-NextMove (playerNum %d)-" state.playerNum)
+    /// <summary>Generate the first move to be passed to the server as the next game move.</summary>
+    let FirstMove (pieces: State.pieces) (state: State.state) : Move =
+        ScrabbleUtil.DebugPrint.debugPrint (sprintf "- FirstMove (playerNum %d)\n" state.playerNum)
         // Check whether it is the first move of the game
         if Map.isEmpty state.playedLetters then
             // Depth-first search to find first valid word
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- finding move (playerNum %d)-" state.playerNum)
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- finding first move (playerNum %d)\n" state.playerNum)
             let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
                 // We loop through all pieces in the hand until we find a valid word,
                 // in which case we set finished to true and simply pass the move back up the stack.
@@ -216,11 +218,11 @@ module NextMoveFinder =
                     hand
 
             let move, finished = check state.hand [] state.dict state.board.center
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "-move generated (playerNum %d)-" state.playerNum)
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "-move generated (playerNum %d)\n" state.playerNum)
             move
         else
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- here ? (playerNum %d)-" state.playerNum)
-            failwith "Should not happen?"
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- Should not happen? (playerNum %d)\n" state.playerNum)
+            []
 
 
 
@@ -235,10 +237,21 @@ module Scrabble =
 
     let playGame cstream pieces (st: State.state) =
         let rec aux (st: State.state) =
+            ScrabbleUtil.DebugPrint.debugPrint (sprintf "\n \n Entered aux loop\n \n")
             //Print.printHand pieces (State.hand st)
-            
-            let firstMove = NextMoveFinder.NextMove pieces st
-            let shouldGoRight, shouldGoDown, lastTile, nextMove = NextMoveFinder.StaircaseNextMove pieces st
+
+            if st.FirstPlayerTurn then
+                ScrabbleUtil.DebugPrint.debugPrint (sprintf "First turn \n")
+                let firstMove = NextMoveFinder.FirstMove pieces st
+                send cstream (SMPlay firstMove)
+
+            let shouldGoRight, shouldGoDown, nextMove = NextMoveFinder.StaircaseNextMove pieces st st.LastTile
+            if ((List.isEmpty nextMove) = false) && (st.FirstPlayerTurn = false) then
+                        ScrabbleUtil.DebugPrint.debugPrint (sprintf "* List.isEmpty nextMove true (playerNum %d)*\n" st.playerNum)
+                        send cstream (SMPlay nextMove)
+            else 
+                ScrabbleUtil.DebugPrint.debugPrint (sprintf "* List.isEmpty nextMove false (playerNum %d)*\n" st.playerNum)
+                send cstream (SMPass)
 
             if st.curPlayer = st.playerNum then
                 // remove the force print when you move on from manual input (or when you have learnt the format)
@@ -246,16 +259,6 @@ module Scrabble =
                 //   "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
                 //let input = System.Console.ReadLine()
-
-                if List.isEmpty firstMove then
-                    if List.isEmpty nextMove then
-                        send cstream (SMPass)
-                    else 
-                        send cstream (SMPlay nextMove)
-                else
-                    //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                    if st.FirstPlayerTurn then
-                        send cstream (SMPlay firstMove)
 
                 //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
@@ -283,7 +286,10 @@ module Scrabble =
                             // adding extra state updates
                             GoDown = shouldGoDown
                             GoRight = shouldGoRight
-                            LastTile = lastTile
+                            LastTile = 
+                                match List.tryLast move with
+                                | Some (coord, (tileId, (char, points))) -> Some (coord, tileId, (char, points)) 
+                                | None -> None
                             FirstPlayerTurn = false }
                 | RCM(CMGameOver _) -> ()
                 | RCM a ->
@@ -308,13 +314,7 @@ module Scrabble =
                             playedLetters =
                                 move
                                 |> List.fold (fun acc (coord, (_, tile)) -> Map.add coord tile acc) st.playedLetters
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount
-                            
-                            // adding extra state updates
-                            GoDown = shouldGoDown
-                            GoRight = shouldGoRight
-                            LastTile = lastTile
-                            FirstPlayerTurn = false }
+                            curPlayer = (st.curPlayer + 1u) % st.playerCount }
                 | RCM(CMPlayFailed(pid, ms)) ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d failed to play %A\n" pid ms)
 
@@ -336,6 +336,7 @@ module Scrabble =
                             curPlayer = (st.curPlayer + 1u) % st.playerCount }
 
         aux st
+
 
     let startGame
         (boardP: boardProg)
