@@ -90,102 +90,66 @@ module NextMoveFinder =
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state): (bool * bool * Move) =
-        ScrabbleUtil.DebugPrint.debugPrint (sprintf "- FirstMove (playerNum %d)\n" state.playerNum)
+        let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) (goRight: bool) (goDown: bool) : (Move * bool) =
+            // We loop through all pieces in the hand until we find a valid word,
+            // in which case we set finished to true and simply pass the move back up the stack.
+            MultiSet.fold
+                (fun (move, finished) id _ -> // for each piece in hand
+                    // Get the piece from the pieces map
+                    // A piece is a set of variants, typically only one,
+                    // but in case the piece is a wildcard piece, the set will contain all possible variants.
+                    let piece = Map.find id pieces
+
+                    Set.fold
+                        (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
+                            if finished then
+                                // This is the branch we enter when we have already found a valid word
+                                (move, true)
+                            else
+                                // Check if the current dictionary node has a child node with the current character
+                                match Dictionary.step char dict with
+                                | Some(finished, dict) ->
+                                    let tile = (id, (char, points))
+                                    let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
+
+                                    if finished then
+                                        // If this dictionary node is a word, we have found a valid word
+                                        // and we can return the move
+                                        (move, true)
+                                    else
+                                        // Otherwise, we continue the search
+                                        if goRight then 
+                                            check (MultiSet.removeSingle id hand) move dict (x + 1, y) true false
+                                        else
+                                            check (MultiSet.removeSingle id hand) move dict (x, y - 1) true false
+
+                                | None -> (move, false))
+                        (move, finished)
+                        piece)
+                (move, false)
+                hand
+
         // Check whether it is the first move of the game
         if Map.isEmpty state.playedLetters then
             // Depth-first search to find first valid word
             ScrabbleUtil.DebugPrint.debugPrint (sprintf "- finding first move (playerNum %d)\n" state.playerNum)
-            let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) (goRight: bool) (goDown: bool) : (Move * bool) =
-                // We loop through all pieces in the hand until we find a valid word,
-                // in which case we set finished to true and simply pass the move back up the stack.
-                MultiSet.fold
-                    (fun (move, finished) id _ -> // for each piece in hand
-                        // Get the piece from the pieces map
-                        // A piece is a set of variants, typically only one,
-                        // but in case the piece is a wildcard piece, the set will contain all possible variants.
-                        let piece = Map.find id pieces
-
-                        Set.fold
-                            (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
-                                if finished then
-                                    // This is the branch we enter when we have already found a valid word
-                                    (move, true)
-                                else
-                                    // Check if the current dictionary node has a child node with the current character
-                                    match Dictionary.step char dict with
-                                    | Some(finished, dict) ->
-                                        let tile = (id, (char, points))
-                                        let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
-
-                                        if finished then
-                                            // If this dictionary node is a word, we have found a valid word
-                                            // and we can return the move
-                                            (move, true)
-                                        else
-                                            // Otherwise, we continue the search
-                                            if goRight then 
-                                                check (MultiSet.removeSingle id hand) move dict (x + 1, y) true false
-                                            else
-                                                check (MultiSet.removeSingle id hand) move dict (x, y - 1) true false
-
-                                    | None -> (move, false))
-                            (move, finished)
-                            piece)
-                    (move, false)
-                    hand
-
             let move, finished = check state.hand [] state.dict state.board.center true false
             ScrabbleUtil.DebugPrint.debugPrint (sprintf "- FIRST move generated (playerNum %d)\n" state.playerNum)
             (true, false, move)
         else
-            // Depth-first search to find next valid word
+            // Subsequent move, start search from the last played tile's position
             ScrabbleUtil.DebugPrint.debugPrint (sprintf "- finding next move (playerNum %d)\n" state.playerNum)
-            let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) (goRight: bool) (goDown: bool) : (Move * bool) =
-                // We loop through all pieces in the hand until we find a valid word,
-                // in which case we set finished to true and simply pass the move back up the stack.
-                MultiSet.fold
-                    (fun (move, finished) id _ -> // for each piece in hand
-                        // Get the piece from the pieces map
-                        // A piece is a set of variants, typically only one,
-                        // but in case the piece is a wildcard piece, the set will contain all possible variants.
-                        let piece = Map.find id pieces
-
-                        Set.fold
-                            (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
-                                if finished then
-                                    // This is the branch we enter when we have already found a valid word
-                                    (move, true)
-                                else
-                                    // Check if the current dictionary node has a child node with the current character
-                                    match Dictionary.step char dict with
-                                    | Some(finished, dict) ->
-                                        let tile = (id, (char, points))
-                                        let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
-
-                                        if finished then
-                                            // If this dictionary node is a word, we have found a valid word
-                                            // and we can return the move
-                                            (move, true)
-                                        else
-                                            // Otherwise, we continue the search
-                                            if goRight then 
-                                                check (MultiSet.removeSingle id hand) move dict (x + 1, y) true false
-                                            else
-                                                check (MultiSet.removeSingle id hand) move dict (x, y - 1) true false
-
-                                    | None -> (move, false))
-                            (move, finished)
-                            piece)
-                    (move, false)
-                    hand
-            let move, finished =
-                match state.LastTile with
-                | Some(lastCoord, _, (_, _)) -> check state.hand [] state.dict lastCoord true false
-                | None -> check state.hand [] state.dict state.board.center true false
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- NEXT move generated (playerNum %d)\n" state.playerNum)
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- LastTile %A\n" state.LastTile)
-            (true, false, move)
-
+            match state.LastTile with
+            | Some (lastCoord, _, (_, _)) -> 
+                let move, finished = check state.hand [] state.dict lastCoord true false // Start from lastCoord
+                if finished then // Only update LastTile if a valid move was found
+                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "- NEXT move generated (playerNum %d)\n" state.playerNum)
+                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "- LastTile %A\n" state.LastTile)
+                    (true, false, move)
+                else
+                    (false, false, [])
+            | None -> 
+                failwith "LastTile should not be None for subsequent moves" // Handle this error appropriately
 
 // match state.board.squares state.board.center with
 // | StateMonad.Result.Success None -> GenerateFirstWord state
