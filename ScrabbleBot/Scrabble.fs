@@ -86,7 +86,11 @@ module State =
 module NextMoveFinder =
     type Move = (coord * (uint32 * (char * int))) list
 
-    /// <summary>Staircase Method to find the next subsequent move.</summary>
+    /// <summary>Staircase Method to find the next subsequent move.
+    /// If the global state 'GoRight' is true, then it will go right to find the last letter,
+    /// and then place words down. If the global state 'GoDown' is true, then it will do the
+    /// opposite.
+    /// </summary>
     let StaircaseNextMove (pieces: State.pieces) (state: State.state) =
         let rec findLastLetter (goRight: bool) (goDown: bool) (lastTile: option<coord * uint32 * (char * int)>) =
             // Start by checking if we should go right
@@ -98,7 +102,7 @@ module NextMoveFinder =
                     // If a letter to the right exists, then go one right again
                     findLastLetter true false (Some ((x + 1, y), tileId, (character, score))) 
                 // if no other letter exists, then try checking one down (returns 'false' for the 'state.ToRight')
-                | None -> findLastLetter false true lastTile
+                | None -> (false, true, lastTile)
             | false ->
                 // check if we can go down instead
                 match goDown with
@@ -112,10 +116,10 @@ module NextMoveFinder =
                     | None -> findLastLetter false false lastTile
                 // we must have reached the last placed letter on the board
                 | false -> // place new word
-                    failwith "not implemented"
+                    (true, false, lastTile)
 
 
-        findLastLetter true false state.LastTile
+        findLastLetter state.GoRight state.GoDown state.LastTile
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state) : Move =
@@ -162,7 +166,8 @@ module NextMoveFinder =
             move
         else
             // If subsequent move
-            StaircaseNextMove pieces state
+            failwith ""
+            //StaircaseNextMove pieces state
 
 
 
@@ -185,6 +190,7 @@ module Scrabble =
                 //   "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
                 //let input = System.Console.ReadLine()
+                let shouldGoRight, shouldGoDown, nextMove = NextMoveFinder.StaircaseNextMove pieces st
                 let move = NextMoveFinder.NextMove pieces st
 
                 if List.isEmpty move then
@@ -214,7 +220,11 @@ module Scrabble =
                             playedLetters =
                                 move
                                 |> List.fold (fun acc (coord, (_, tile)) -> Map.add coord tile acc) st.playedLetters
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount }
+                            curPlayer = (st.curPlayer + 1u) % st.playerCount
+                            
+                            // adding extra state updates
+                            GoDown = shouldGoDown
+                            GoRight = shouldGoRight }
                 | RCM(CMGameOver _) -> ()
                 | RCM a ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d <- Server:\n%A\n" st.playerNum a)
