@@ -89,7 +89,7 @@ module NextMoveFinder =
     type Move = (coord * (uint32 * (char * int))) list
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
-    let dfsCheck (pieces: State.pieces) (state: State.state) (tile: (coord * uint32 * (char * int)) option) : Move =
+    let dfsCheck (pieces: State.pieces) (state: State.state) (tile: (coord * uint32 * (char * int))) : bool * bool * Move =
         ScrabbleUtil.DebugPrint.debugPrint (sprintf "- NextMove (playerNum %d)\n" state.playerNum)
         // Check whether it is the first move of the game
         match state.LastTile with
@@ -138,41 +138,16 @@ module NextMoveFinder =
                 | Some(coord, _, (_, _)) -> check state.hand [] state.dict coord
                 | None -> ([], false)
             ScrabbleUtil.DebugPrint.debugPrint (sprintf "- move generated (playerNum %d)\n" state.playerNum)
-            move
+            if state.GoRight then
+                (true, false, move)
+            else
+                (false, true, move)
         | None ->
             ScrabbleUtil.DebugPrint.debugPrint (sprintf "- no next move (playerNum %d)\n" state.playerNum)
-            []
-
-    /// <summary>Staircase Method to find the next subsequent move.
-    /// If the global state 'GoRight' is true, then it will go right to find the last letter,
-    /// and then place words down. If the global state 'GoDown' is true, then it will do the
-    /// opposite.
-    /// </summary>
-    let StaircaseNextMove (pieces: State.pieces) (state: State.state) (lastTile: option<coord * uint32 * (char * int)>): bool * bool * Move =
-        let rec findLastLetter (goRight: bool) (goDown: bool)=
-            // Start by checking if we should go right
-            match goRight with
-            | true -> 
-                ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase right (playerNum %d)\n" state.playerNum)
-                // From the last provided tile, check one tile to the right          
-                match lastTile with
-                | Some (_) -> 
-                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "-working from last tile (Right): %A" lastTile)
-                    dfsCheck pieces state lastTile
-            | false ->
-                // check if we can go down instead
-                match goDown with
-                | true ->
-                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "-staircase down (playerNum %d)\n" state.playerNum)
-                    // From the last provided tile, check one tile down        
-                    match lastTile with
-                        | Some (_) -> 
-                        ScrabbleUtil.DebugPrint.debugPrint (sprintf "-working from last tile (Right): %A" lastTile)
-                        dfsCheck pieces state lastTile
-                // we must have reached the last placed letter on the board
-
-
-        (state.GoRight, state.GoDown, (findLastLetter state.GoRight state.GoDown))
+            if state.GoRight then
+                (true, false, [])
+            else
+                (false, true, [])
 
     /// <summary>Generate the first move to be passed to the server as the next game move.</summary>
     let FirstMove (pieces: State.pieces) (state: State.state) : Move =
@@ -224,6 +199,19 @@ module NextMoveFinder =
             ScrabbleUtil.DebugPrint.debugPrint (sprintf "- Should not happen? (playerNum %d)\n" state.playerNum)
             []
 
+    /// <summary>Staircase Method to find the next subsequent move.
+    /// If the global state 'GoRight' is true, then it will go right to find the last letter,
+    /// and then place words down. If the global state 'GoDown' is true, then it will do the
+    /// opposite.
+    /// </summary>
+    let StaircaseNextMove (pieces: State.pieces) (state: State.state) (lastTile: option<coord * uint32 * (char * int)>): bool * bool * Move =
+        let rec findLastLetter =
+            match lastTile with
+            | Some(coord, tileId, (character, score)) ->
+                dfsCheck pieces state (coord, tileId, (character, score))
+            | None -> 
+                (true, false, (FirstMove pieces state))
+        findLastLetter
 
 
 // match state.board.squares state.board.center with
