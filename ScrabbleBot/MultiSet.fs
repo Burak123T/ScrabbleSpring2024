@@ -68,7 +68,8 @@ module internal MultiSet
         | R map -> Map.foldBack func map start
 
     let ofList (_ : 'a list) : MultiSet<'a> = failwith ""
-    let toList (_ : MultiSet<'a>) : 'a list = failwith ""
+    let toList (R m : MultiSet<'a>) : 'a list =
+        List.collect (fun (a, n) -> List.replicate (int n) a) (Map.toList m)
 
 
     let map (_ : 'a -> 'b) (_ : MultiSet<'a>) : MultiSet<'b> = failwith ""
