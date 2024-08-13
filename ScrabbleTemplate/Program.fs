@@ -97,7 +97,7 @@ let main argv =
     let handSize = 7u
     let timeout = None
     let tiles = ScrabbleUtil.English.tiles 1u
-    let seed = Some 2998
+    let seed = Some 3
     let port = 13001
 
     let board = ScrabbleUtil.StandardBoard.standardBoard ()
