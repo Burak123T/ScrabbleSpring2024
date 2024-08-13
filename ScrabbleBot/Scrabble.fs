@@ -250,7 +250,13 @@ module NextMoveFinder =
                                                 let tile: piece = (id, (char, points))
                                                 let move: Move = ((x, y), tile) :: move
 
-                                                if isWord then Some move
+                                                let hasAfter =
+                                                    match dir with
+                                                    | Right -> Map.containsKey (x + 1, y) state.playedLetters
+                                                    | Down -> Map.containsKey (x, y + 1) state.playedLetters
+
+                                                if isWord && not hasAfter then
+                                                    Some move
                                                 else
                                                     let hand = MultiSet.removeSingle id hand
                                                     match dir with
