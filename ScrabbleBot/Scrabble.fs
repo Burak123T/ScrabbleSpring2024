@@ -210,6 +210,7 @@ module Scrabble =
                     ScrabbleUtil.DebugPrint.debugPrint (
                         sprintf "Player %d played %A for %d points\n" st.playerNum move points
                     )
+                    
                     (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
 
                     aux
