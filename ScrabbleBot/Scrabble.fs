@@ -179,10 +179,10 @@ module NextMoveFinder =
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state) : Move option =
-        ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-NextMove (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+        // ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-NextMove (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
         // Check whether it is the first move of the game
         if Map.isEmpty state.playedLetters then
-            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            // ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             let rec findFirstMove (dir: Direction) (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : Move option =
                 MultiSet.fold
                     (fun (found: Move option) id _ ->
@@ -212,12 +212,11 @@ module NextMoveFinder =
                     hand
 
             let found = findFirstMove Right state.hand [] state.dict state.board.center
-            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            // ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             found
         else
-            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding non-first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            // ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding non-first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             let rec findMove (dir: Direction) (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : Move option =
-                ScrabbleUtil.DebugPrint.debugPrintCol "valid\n" System.ConsoleColor.DarkGray
                 match Map.tryFind (x, y) state.playedLetters with
                 | Some (char, _) ->
                     match Dictionary.step char dict with
@@ -233,9 +232,10 @@ module NextMoveFinder =
                         | Down -> Map.containsKey (x + 1, y) state.playedLetters || Map.containsKey (x - 1, y) state.playedLetters
 
                     if invalid then
-                        ScrabbleUtil.DebugPrint.debugPrintCol "invalid\n" System.ConsoleColor.DarkGray
+                        //ScrabbleUtil.DebugPrint.debugPrintCol "invalid\n" System.ConsoleColor.DarkGray
                         None
                     else
+                        //ScrabbleUtil.DebugPrint.debugPrintCol "valid\n" System.ConsoleColor.DarkGray
                         MultiSet.fold
                             (fun (found: Move option) id _ ->
                                 let piece: tile = Map.find id pieces
@@ -271,16 +271,16 @@ module NextMoveFinder =
             let move =
                 Map.fold
                     (fun last (x, y) (char, _) ->
-                        ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "coord: %A\n" (x, y)) System.ConsoleColor.DarkGray
+                        //ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "coord: %A\n" (x, y)) System.ConsoleColor.DarkGray
 
                         if Option.isSome last then last
                         else
                             let canRight = not (Map.containsKey (x - 1, y) state.playedLetters)
                             let moveRight =
                                 if canRight then
-                                    ScrabbleUtil.DebugPrint.debugPrintCol "try right\n" System.ConsoleColor.DarkGray
+                                    //ScrabbleUtil.DebugPrint.debugPrintCol "try right\n" System.ConsoleColor.DarkGray
                                     let moveRight = findMove Right state.hand [] state.dict (x, y)
-                                    ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "moveRight: %A\n" moveRight) System.ConsoleColor.DarkGray
+                                    //ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "moveRight: %A\n" moveRight) System.ConsoleColor.DarkGray
                                     moveRight
                                 else None
 
@@ -288,14 +288,14 @@ module NextMoveFinder =
                             else
                                 let canDown = not (Map.containsKey (x, y - 1) state.playedLetters)
                                 if canDown then
-                                    ScrabbleUtil.DebugPrint.debugPrintCol "try down\n" System.ConsoleColor.DarkGray
+                                    //ScrabbleUtil.DebugPrint.debugPrintCol "try down\n" System.ConsoleColor.DarkGray
                                     let moveDown = findMove Down state.hand [] state.dict (x, y)
-                                    ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "moveDown: %A\n" moveDown) System.ConsoleColor.DarkGray
+                                    //ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "moveDown: %A\n" moveDown) System.ConsoleColor.DarkGray
                                     moveDown
                                 else None)
                         None
                         state.playedLetters
-            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            // ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             move
 
 
@@ -316,7 +316,7 @@ module Scrabble =
             // let firstMove = NextMoveFinder.NextMove pieces st
             // let shouldGoRight, shouldGoDown, lastTile, nextMove = NextMoveFinder.StaircaseNextMove pieces st
 
-            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "st.curPlayer %A = st.playerNum %A\n" st.curPlayer st.playerNum) System.ConsoleColor.Black
+            //ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "st.curPlayer %A = st.playerNum %A\n" st.curPlayer st.playerNum) System.ConsoleColor.Black
             if st.curPlayer = st.playerNum then
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 // forcePrint
@@ -324,17 +324,17 @@ module Scrabble =
 
                 //let input = System.Console.ReadLine()
 
-                ScrabbleUtil.DebugPrint.debugPrintCol "B\n" System.ConsoleColor.Black
                 let move = NextMoveFinder.NextMove pieces st
-                ScrabbleUtil.DebugPrint.debugPrintCol "C\n" System.ConsoleColor.Black
 
                 match move with
                 | Some move -> send cstream (SMPlay move)
-                | None -> send cstream (SMPass)
+                | None -> send cstream (SMChange (MultiSet.toList st.hand))
 
                 debugPrint (sprintf "Player %d <- Server:\n%A\n" st.curPlayer move) // keep the debug lines. They are useful.
 
-                match recv cstream with
+                let mes = recv cstream
+
+                match mes with
                 | RCM(CMPlaySuccess(move: (coord * (uint32 * (char * int))) list,
                                     points,
                                     newPieces: (uint32 * uint32) list)) ->
@@ -360,6 +360,13 @@ module Scrabble =
                             // goRight = shouldGoRight
                             // lastTile = lastTile
                             firstPlayerTurn = false }
+                | RCM(CMChangeSuccess(newPieces: (uint32 * uint32) list)) ->
+                    ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d changed pieces\n" st.playerNum)
+
+                    aux
+                        { st with
+                            hand = newPieces |> List.fold (fun acc (id, n) -> MultiSet.add id n acc) MultiSet.empty
+                            curPlayer = State.nextPlayer st }
                 | RCM(CMGameOver _) -> ()
                 | RCM a ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d <- Server:\n%A\n" st.playerNum a)
@@ -374,8 +381,6 @@ module Scrabble =
                         { st with
                             curPlayer = State.nextPlayer st }
             else
-                ScrabbleUtil.DebugPrint.debugPrintCol "D\n" System.ConsoleColor.Black
-
                 match recv cstream with
                 | RCM(CMPlayed(pid, move: (coord * (uint32 * (char * int))) list, points)) ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d played %A for %d points\n" pid move points)
