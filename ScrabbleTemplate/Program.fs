@@ -81,7 +81,7 @@ let main argv =
     let players =
         // [ "LexiIngenium", dictionary, LexiIngenium.Scrabble.startGame
         //   "OxyphenButazone", dictionary, Oxyphenbutazone.Scrabble.startGame ]
-        spawnMultiples "LexiIngenium" dictionary LexiIngenium.Scrabble.startGame 2
+        spawnMultiples "LexiIngenium" dictionary LexiIngenium.Scrabble.startGame 1
 
     // Uncomment to test your dictionary
     let incorrectWords = ScrabbleUtil.Dictionary.test words 10 (dictionary false) // change the boolean to true if using a GADDAG
@@ -100,14 +100,14 @@ let main argv =
     let seed = Some 0
     let port = 13001
 
-    let board = ScrabbleUtil.StandardBoard.standardBoard ()
-    //    let board      = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
-    //    let board      = ScrabbleUtil.RandomBoard.randomBoard ()
-    //    let board      = ScrabbleUtil.RandomBoard.randomBoardSeed (Some 42)
-    //    let board      = ScrabbleUtil.InfiniteRandomBoard.infiniteRandomBoard ()
-    //    let board      = ScrabbleUtil.InfiniteRandomBoard.infiniteRandomBoardSeed (Some 42)
-    //    let board      = ScrabbleUtil.HoleBoard.holeBoard ()
-    //    let board      = ScrabbleUtil.InfiniteHoleBoard.infiniteHoleBoard ()
+    //let board = ScrabbleUtil.StandardBoard.standardBoard ()
+    let board = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
+    //let board = ScrabbleUtil.RandomBoard.randomBoard ()
+    //let board = ScrabbleUtil.RandomBoard.randomBoardSeed (Some 42)
+    //let board = ScrabbleUtil.InfiniteRandomBoard.infiniteRandomBoard ()
+    //let board = ScrabbleUtil.InfiniteRandomBoard.infiniteRandomBoardSeed (Some 42)
+    //let board = ScrabbleUtil.HoleBoard.holeBoard ()
+    //let board = ScrabbleUtil.InfiniteHoleBoard.infiniteHoleBoard ()
 
     //let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
 

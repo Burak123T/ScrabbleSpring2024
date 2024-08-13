@@ -175,7 +175,7 @@ module NextMoveFinder =
 
         findLastLetter state.goRight state.goDown state.lastTile
 
-    type Direction = Left | Down
+    type Direction = Right | Down
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let NextMove (pieces: State.pieces) (state: State.state) : Move option =
@@ -184,7 +184,6 @@ module NextMoveFinder =
         if Map.isEmpty state.playedLetters then
             ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             let rec findFirstMove (dir: Direction) (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : Move option =
-                ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "move: %A\n" move) System.ConsoleColor.DarkGray
                 MultiSet.fold
                     (fun (found: Move option) id _ ->
                         let piece = Map.find id pieces
@@ -203,7 +202,7 @@ module NextMoveFinder =
                                         else
                                             let hand = MultiSet.removeSingle id hand
                                             match dir with
-                                            | Left -> findFirstMove Left hand move dict (x + 1, y)
+                                            | Right -> findFirstMove Right hand move dict (x + 1, y)
                                             | Down -> findFirstMove Down hand move dict (x, y + 1)
 
                                     | None -> None)
@@ -212,58 +211,82 @@ module NextMoveFinder =
                     None
                     hand
 
-            let found = findFirstMove Left state.hand [] state.dict state.board.center
+            let found = findFirstMove Right state.hand [] state.dict state.board.center
             ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             found
         else
             ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding non-first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
             let rec findMove (dir: Direction) (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : Move option =
+                ScrabbleUtil.DebugPrint.debugPrintCol "valid\n" System.ConsoleColor.DarkGray
                 match Map.tryFind (x, y) state.playedLetters with
                 | Some (char, _) ->
                     match Dictionary.step char dict with
                     | Some(isWord, dict) ->
                         match dir with
-                        | Left -> findMove dir hand move dict (x + 1, y)
-                        | Down -> findMove dir hand move dict (x, y + 1)
+                        | Right -> findMove Right hand move dict (x + 1, y)
+                        | Down -> findMove Down hand move dict (x, y + 1)
                     | None -> None
                 | None ->
-                    MultiSet.fold
-                        (fun (found: Move option) id _ ->
-                            let piece: tile = Map.find id pieces
+                    let invalid =
+                        match dir with
+                        | Right -> Map.containsKey (x, y + 1) state.playedLetters || Map.containsKey (x, y - 1) state.playedLetters
+                        | Down -> Map.containsKey (x + 1, y) state.playedLetters || Map.containsKey (x - 1, y) state.playedLetters
 
-                            Set.fold
-                                (fun (found: Move option) (char, points) ->
-                                    match found with
-                                    | Some move -> Some move
-                                    | None ->
-                                        match Dictionary.step char dict with
-                                        | Some(isWord, dict) ->
-                                            let tile: piece = (id, (char, points))
-                                            let move: Move = ((x, y), tile) :: move
-
-                                            if isWord then Some move
-                                            else
-                                                let hand = MultiSet.removeSingle id hand
-                                                match dir with
-                                                | Left -> findMove Left hand move dict (x + 1, y)
-                                                | Down -> findMove Down hand move dict (x, y + 1)
-
-                                        | None -> None)
-                                found
-                                piece)
+                    if invalid then
+                        ScrabbleUtil.DebugPrint.debugPrintCol "invalid\n" System.ConsoleColor.DarkGray
                         None
-                        hand
+                    else
+                        MultiSet.fold
+                            (fun (found: Move option) id _ ->
+                                let piece: tile = Map.find id pieces
+
+                                Set.fold
+                                    (fun (found: Move option) (char, points) ->
+                                        match found with
+                                        | Some move -> Some move
+                                        | None ->
+                                            match Dictionary.step char dict with
+                                            | Some(isWord, dict) ->
+                                                let tile: piece = (id, (char, points))
+                                                let move: Move = ((x, y), tile) :: move
+
+                                                if isWord then Some move
+                                                else
+                                                    let hand = MultiSet.removeSingle id hand
+                                                    match dir with
+                                                    | Right -> findMove Right hand move dict (x + 1, y)
+                                                    | Down -> findMove Down hand move dict (x, y + 1)
+
+                                            | None -> None)
+                                    found
+                                    piece)
+                            None
+                            hand
             let move =
                 Map.fold
                     (fun last (x, y) (char, _) ->
+                        ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "coord: %A\n" (x, y)) System.ConsoleColor.DarkGray
+
                         if Option.isSome last then last
                         else
-                            match findMove Left state.hand [] state.dict (x, y) with
-                            | Some moveLeft -> Some moveLeft
-                            | None ->
-                                match findMove Down state.hand [] state.dict (x, y) with
-                                | Some moveDown -> Some moveDown
-                                | None -> None)
+                            let canRight = not (Map.containsKey (x - 1, y) state.playedLetters)
+                            let moveRight =
+                                if canRight then
+                                    ScrabbleUtil.DebugPrint.debugPrintCol "try right\n" System.ConsoleColor.DarkGray
+                                    let moveRight = findMove Right state.hand [] state.dict (x, y)
+                                    ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "moveRight: %A\n" moveRight) System.ConsoleColor.DarkGray
+                                    moveRight
+                                else None
+
+                            if Option.isSome moveRight then moveRight
+                            else
+                                let canDown = not (Map.containsKey (x, y - 1) state.playedLetters)
+                                if canDown then
+                                    ScrabbleUtil.DebugPrint.debugPrintCol "try down\n" System.ConsoleColor.DarkGray
+                                    let moveDown = findMove Down state.hand [] state.dict (x, y)
+                                    ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "moveDown: %A\n" moveDown) System.ConsoleColor.DarkGray
+                                    moveDown
+                                else None)
                         None
                         state.playedLetters
             ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
