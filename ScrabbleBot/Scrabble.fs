@@ -60,10 +60,10 @@ module State =
           curPlayer: uint32
           playedLetters: Map<coord, (char * int)>
           timeout: uint32 option
-          GoRight: bool
-          GoDown: bool
-          LastTile: (coord * uint32 * (char * int)) option
-          FirstPlayerTurn: bool }
+          goRight: bool
+          goDown: bool
+          lastTile: (coord * uint32 * (char * int)) option
+          firstPlayerTurn: bool }
 
     // OLD (But keeping just in case we want it on one line): let mkState b d pn h = {board = b; dict = d;  playerNumber = pn; hand = h  }
 
@@ -76,62 +76,65 @@ module State =
           curPlayer = newPlaterTurn
           playedLetters = playedLetters
           timeout = timeout
-          GoRight = goRight
-          GoDown = goDown
-          LastTile = lastTile
-          FirstPlayerTurn = firstPlayerTurn }
+          goRight = goRight
+          goDown = goDown
+          lastTile = lastTile
+          firstPlayerTurn = firstPlayerTurn }
+
+    let nextPlayer (state: state) : uint32 = max 1u ((state.curPlayer + 1u) % state.playerCount)
 
     type pieces = Map<uint32, tile>
     type coordinates = (int * int)
 
 /// <summary>Our implementation for a move finding algorithm ;_;</summary>
 module NextMoveFinder =
-    type Move = (coord * (uint32 * (char * int))) list
+    type piece = (uint32 * (char * int))
+    type Move = (coord * piece) list
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
     let dfsCheck (pieces: State.pieces) (state: State.state) (tile: (coord * uint32 * (char * int)) option) : Move =
-            // Depth-first search to find first valid word
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "-dfsCheck (playerNum %d)-" state.playerNum)
-            let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
-                // We loop through all pieces in the hand until we find a valid word,
-                // in which case we set finished to true and simply pass the move back up the stack.
-                MultiSet.fold
-                    (fun (move, finished) id _ -> // for each piece in hand
-                        // Get the piece from the pieces map
-                        // A piece is a set of variants, typically only one,
-                        // but in case the piece is a wildcard piece, the set will contain all possible variants.
-                        let piece = Map.find id pieces
+        // Depth-first search to find first valid word
+        ScrabbleUtil.DebugPrint.debugPrint (sprintf "-dfsCheck (playerNum %d)-" state.playerNum)
+        let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
+            // We loop through all pieces in the hand until we find a valid word,
+            // in which case we set finished to true and simply pass the move back up the stack.
+            MultiSet.fold
+                (fun (move, finished) id _ -> // for each piece in hand
+                    // Get the piece from the pieces map
+                    // A piece is a set of variants, typically only one,
+                    // but in case the piece is a wildcard piece, the set will contain all possible variants.
+                    let piece = Map.find id pieces
 
-                        Set.fold
-                            (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
-                                if finished then
-                                    // This is the branch we enter when we have already found a valid word
-                                    (move, true)
-                                else
-                                    // Check if the current dictionary node has a child node with the current character
-                                    match Dictionary.step char dict with
-                                    | Some(finished, dict) ->
-                                        let tile = (id, (char, points))
-                                        let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
+                    Set.fold
+                        (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
+                            if finished then
+                                // This is the branch we enter when we have already found a valid word
+                                (move, true)
+                            else
+                                // Check if the current dictionary node has a child node with the current character
+                                match Dictionary.step char dict with
+                                | Some(finished, dict) ->
+                                    let tile = (id, (char, points))
+                                    let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
 
-                                        if finished then
-                                            // If this dictionary node is a word, we have found a valid word
-                                            // and we can return the move
-                                            (move, true)
-                                        else
-                                            // Otherwise, we continue the search
-                                            check (MultiSet.removeSingle id hand) move dict (x + 1, y)
+                                    if finished then
+                                        // If this dictionary node is a word, we have found a valid word
+                                        // and we can return the move
+                                        (move, true)
+                                    else
+                                        // Otherwise, we continue the search
+                                        check (MultiSet.removeSingle id hand) move dict (x + 1, y)
 
-                                    | None -> (move, false))
-                            (move, finished)
-                            piece)
-                    (move, false)
-                    hand
-            let move, finished =
-                match tile with
-                | Some(coord, uint32, (c, i)) -> check state.hand [] state.dict coord
-                | None -> check state.hand [] state.dict state.board.center
-            move
+                                | None -> (move, false))
+                        (move, finished)
+                        piece)
+                (move, false)
+                hand
+        let move, finished =
+            match tile with
+            | Some(coord, uint32, (c, i)) -> check state.hand [] state.dict coord
+            | None -> check state.hand [] state.dict state.board.center
+        move
 
     /// <summary>Staircase Method to find the next subsequent move.
     /// If the global state 'GoRight' is true, then it will go right to find the last letter,
@@ -170,57 +173,101 @@ module NextMoveFinder =
                     (true, false, lastTile, (dfsCheck pieces state lastTile))
 
 
-        findLastLetter state.GoRight state.GoDown state.LastTile
+        findLastLetter state.goRight state.goDown state.lastTile
+
+    type Direction = Left | Down
 
     /// <summary>Generate the next move to be passed to the server as the next game move.</summary>
-    let NextMove (pieces: State.pieces) (state: State.state) : Move =
-        ScrabbleUtil.DebugPrint.debugPrint (sprintf "-NextMove (playerNum %d)-" state.playerNum)
+    let NextMove (pieces: State.pieces) (state: State.state) : Move option =
+        ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-NextMove (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
         // Check whether it is the first move of the game
         if Map.isEmpty state.playedLetters then
-            // Depth-first search to find first valid word
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- finding move (playerNum %d)-" state.playerNum)
-            let rec check (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : (Move * bool) =
-                // We loop through all pieces in the hand until we find a valid word,
-                // in which case we set finished to true and simply pass the move back up the stack.
+            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            let rec findFirstMove (dir: Direction) (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : Move option =
+                ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "move: %A\n" move) System.ConsoleColor.DarkGray
                 MultiSet.fold
-                    (fun (move, finished) id _ -> // for each piece in hand
-                        // Get the piece from the pieces map
-                        // A piece is a set of variants, typically only one,
-                        // but in case the piece is a wildcard piece, the set will contain all possible variants.
+                    (fun (found: Move option) id _ ->
                         let piece = Map.find id pieces
 
                         Set.fold
-                            (fun (move, finished) (char, points) -> // for each piece variant that the piece can be
-                                if finished then
-                                    // This is the branch we enter when we have already found a valid word
-                                    (move, true)
-                                else
-                                    // Check if the current dictionary node has a child node with the current character
+                            (fun (found: Move option) (char, points) ->
+                                match found with
+                                | Some move -> Some move
+                                | None ->
                                     match Dictionary.step char dict with
-                                    | Some(finished, dict) ->
+                                    | Some(isWord, dict) ->
                                         let tile = (id, (char, points))
-                                        let move = ((x, y), tile) :: move // add the current piece to the move (they don't have to be in order)
+                                        let move = ((x, y), tile) :: move
 
-                                        if finished then
-                                            // If this dictionary node is a word, we have found a valid word
-                                            // and we can return the move
-                                            (move, true)
+                                        if isWord then Some move
                                         else
-                                            // Otherwise, we continue the search
-                                            check (MultiSet.removeSingle id hand) move dict (x + 1, y)
+                                            let hand = MultiSet.removeSingle id hand
+                                            match dir with
+                                            | Left -> findFirstMove Left hand move dict (x + 1, y)
+                                            | Down -> findFirstMove Down hand move dict (x, y + 1)
 
-                                    | None -> (move, false))
-                            (move, finished)
+                                    | None -> None)
+                            found
                             piece)
-                    (move, false)
+                    None
                     hand
 
-            let move, finished = check state.hand [] state.dict state.board.center
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "-move generated (playerNum %d)-" state.playerNum)
-            move
+            let found = findFirstMove Left state.hand [] state.dict state.board.center
+            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            found
         else
-            ScrabbleUtil.DebugPrint.debugPrint (sprintf "- here ? (playerNum %d)-" state.playerNum)
-            failwith "Should not happen?"
+            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-finding non-first move (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            let rec findMove (dir: Direction) (hand: MultiSet.MultiSet<uint32>) (move: Move) (dict: Dict) (x, y) : Move option =
+                match Map.tryFind (x, y) state.playedLetters with
+                | Some (char, _) ->
+                    match Dictionary.step char dict with
+                    | Some(isWord, dict) ->
+                        match dir with
+                        | Left -> findMove dir hand move dict (x + 1, y)
+                        | Down -> findMove dir hand move dict (x, y + 1)
+                    | None -> None
+                | None ->
+                    MultiSet.fold
+                        (fun (found: Move option) id _ ->
+                            let piece: tile = Map.find id pieces
+
+                            Set.fold
+                                (fun (found: Move option) (char, points) ->
+                                    match found with
+                                    | Some move -> Some move
+                                    | None ->
+                                        match Dictionary.step char dict with
+                                        | Some(isWord, dict) ->
+                                            let tile: piece = (id, (char, points))
+                                            let move: Move = ((x, y), tile) :: move
+
+                                            if isWord then Some move
+                                            else
+                                                let hand = MultiSet.removeSingle id hand
+                                                match dir with
+                                                | Left -> findMove Left hand move dict (x + 1, y)
+                                                | Down -> findMove Down hand move dict (x, y + 1)
+
+                                        | None -> None)
+                                found
+                                piece)
+                        None
+                        hand
+            let move =
+                Map.fold
+                    (fun last (x, y) (char, _) ->
+                        if Option.isSome last then last
+                        else
+                            match findMove Left state.hand [] state.dict (x, y) with
+                            | Some moveLeft -> Some moveLeft
+                            | None ->
+                                match findMove Down state.hand [] state.dict (x, y) with
+                                | Some moveDown -> Some moveDown
+                                | None -> None)
+                        None
+                        state.playedLetters
+            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "-move generated (playerNum %d)-\n" state.playerNum) System.ConsoleColor.DarkBlue
+            move
 
 
 
@@ -235,11 +282,12 @@ module Scrabble =
 
     let playGame cstream pieces (st: State.state) =
         let rec aux (st: State.state) =
-            //Print.printHand pieces (State.hand st)
+            Print.printHand pieces st.hand
             
-            let firstMove = NextMoveFinder.NextMove pieces st
-            let shouldGoRight, shouldGoDown, lastTile, nextMove = NextMoveFinder.StaircaseNextMove pieces st
+            // let firstMove = NextMoveFinder.NextMove pieces st
+            // let shouldGoRight, shouldGoDown, lastTile, nextMove = NextMoveFinder.StaircaseNextMove pieces st
 
+            ScrabbleUtil.DebugPrint.debugPrintCol (sprintf "st.curPlayer %A = st.playerNum %A\n" st.curPlayer st.playerNum) System.ConsoleColor.Black
             if st.curPlayer = st.playerNum then
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 // forcePrint
@@ -247,17 +295,15 @@ module Scrabble =
 
                 //let input = System.Console.ReadLine()
 
-                if List.isEmpty firstMove then
-                    if List.isEmpty nextMove then
-                        send cstream (SMPass)
-                    else 
-                        send cstream (SMPlay nextMove)
-                else
-                    //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                    if st.FirstPlayerTurn then
-                        send cstream (SMPlay firstMove)
+                ScrabbleUtil.DebugPrint.debugPrintCol "B\n" System.ConsoleColor.Black
+                let move = NextMoveFinder.NextMove pieces st
+                ScrabbleUtil.DebugPrint.debugPrintCol "C\n" System.ConsoleColor.Black
 
-                //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                match move with
+                | Some move -> send cstream (SMPlay move)
+                | None -> send cstream (SMPass)
+
+                debugPrint (sprintf "Player %d <- Server:\n%A\n" st.curPlayer move) // keep the debug lines. They are useful.
 
                 match recv cstream with
                 | RCM(CMPlaySuccess(move: (coord * (uint32 * (char * int))) list,
@@ -278,27 +324,29 @@ module Scrabble =
                             playedLetters =
                                 move
                                 |> List.fold (fun acc (coord, (_, tile)) -> Map.add coord tile acc) st.playedLetters
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount
+                            curPlayer = State.nextPlayer st
                             
                             // adding extra state updates
-                            GoDown = shouldGoDown
-                            GoRight = shouldGoRight
-                            LastTile = lastTile
-                            FirstPlayerTurn = false }
+                            // goDown = shouldGoDown
+                            // goRight = shouldGoRight
+                            // lastTile = lastTile
+                            firstPlayerTurn = false }
                 | RCM(CMGameOver _) -> ()
                 | RCM a ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d <- Server:\n%A\n" st.playerNum a)
 
                     aux
                         { st with
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount }
+                            curPlayer = State.nextPlayer st }
                 | RGPE err ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d <- Server:\n%A\n" st.playerNum err)
 
                     aux
                         { st with
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount }
+                            curPlayer = State.nextPlayer st }
             else
+                ScrabbleUtil.DebugPrint.debugPrintCol "D\n" System.ConsoleColor.Black
+
                 match recv cstream with
                 | RCM(CMPlayed(pid, move: (coord * (uint32 * (char * int))) list, points)) ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d played %A for %d points\n" pid move points)
@@ -308,13 +356,13 @@ module Scrabble =
                             playedLetters =
                                 move
                                 |> List.fold (fun acc (coord, (_, tile)) -> Map.add coord tile acc) st.playedLetters
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount
+                            curPlayer = State.nextPlayer st
                             
                             // adding extra state updates
-                            GoDown = shouldGoDown
-                            GoRight = shouldGoRight
-                            LastTile = lastTile
-                            FirstPlayerTurn = false }
+                            // goDown = shouldGoDown
+                            // goRight = shouldGoRight
+                            // lastTile = lastTile
+                            firstPlayerTurn = false }
                 | RCM(CMPlayFailed(pid, ms)) ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d failed to play %A\n" pid ms)
 
@@ -327,13 +375,13 @@ module Scrabble =
 
                     aux
                         { st with
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount }
+                            curPlayer = State.nextPlayer st }
                 | RGPE err ->
                     ScrabbleUtil.DebugPrint.debugPrint (sprintf "Player %d <- Server:\n%A\n" st.playerNum err)
 
                     aux
                         { st with
-                            curPlayer = (st.curPlayer + 1u) % st.playerCount }
+                            curPlayer = State.nextPlayer st }
 
         aux st
 
